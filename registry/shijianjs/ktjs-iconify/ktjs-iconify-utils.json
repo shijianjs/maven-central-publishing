@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "project": "shijianjs/ktjs-iconify",
+  "module": "ktjs-iconify-utils",
+  "version": "3.1.7-kt.4",
+  "release": "release-2",
+  "coordinate": "io.github.shijianjs:ktjs-iconify-utils:3.1.7-kt.4",
+  "archive": {
+    "url": "https://github.com/shijianjs/ktjs-iconify/releases/download/release-2/ktjs-iconify-utils-3.1.7-kt.4.tar.xz",
+    "sha256": "7e24dcec7af110ee5798a025fde1b7bc61a31f5990ea75b5dd7488cbe26fcd50"
+  }
+}
