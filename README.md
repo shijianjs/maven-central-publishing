@@ -173,11 +173,11 @@ The `bundle` job always runs first: it collects, verifies, prunes and creates th
 - registrations that were staged in this deployment, now on Central;
 - registrations that were already published and got pruned.
 
-The deletion is a commit pushed back to the branch that ran the workflow; the job needs
-`contents: write`, and a protected branch must allow it. If the remote moved during the upload and
-the push is rejected, the upload still succeeded: run the workflow again; the already-published
-registrations are pruned and deleted. A failed deployment never deletes anything, and failed
-deployments are left in place for Sonatype Support.
+The deletion is a commit pushed back to the branch that ran the workflow. The `upload` job declares
+`permissions: contents: write` for it, and a protected branch must allow that push. If the remote
+moved during the upload and the push is rejected, the upload still succeeded: run the workflow
+again; the already-published registrations are pruned and deleted. A failed deployment never deletes
+anything, and failed deployments are left in place for Sonatype Support.
 
 Release Count is per deployment: every run that uploads creates one deployment regardless of how
 many registrations it contains. File Count and Release Size are per artifact, which is why the hub
