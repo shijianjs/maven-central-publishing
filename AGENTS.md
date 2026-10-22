@@ -31,7 +31,7 @@
   才 `git rm`；然后 commit，`--push` 时推回当前分支。这样即使上传期间有人替换了注册，也不会误删
   新版本。
 - `jreleaser.yml`：只负责合并与上传。`stagingRepositories: [staging]`，`checksums: false`，
-  `sign: false`（构件由项目侧签名）。
+  `sign: false`（构件由项目侧签名），`verifyPom: false`。
 - `.github/workflows/hub.yml`：仅 `workflow_dispatch`。`bundle` job 默认 `jreleaser deploy
   --dry-run` 只产出 bundle；`upload` job 在 `upload=true` 时上传，并在成功后运行 cleanup。
   即使 `pending=0`，`upload=true` 也会运行 upload job，用于删除「已发布但注册还在」的条目。
@@ -104,6 +104,10 @@ JReleaser 版本固定在工作流的 `JRELEASER_VERSION`，升级时同步更�
   namespace，并与 deployer 的 namespace 回退逻辑相关。
 - 默认 `checksums` 为 true，会为每个构件生成 `.md5/.sha1/.sha256/.sha512` 并放进 bundle（即使
   staging 里没有）。必须显式 `checksums: false`，否则 File Count 会翻四倍。
+- `verifyPom` 会随 `applyMavenCentralRules` 的默认值打开，对每个 POM 跑 kordamp PomChecker。
+  它不认 Kotlin Multiplatform JS publication 的 `<packaging>klib</packaging>`（Central 本身接受，
+  kotlinx 的 `*-js` 构件就是 klib），会以 `Unknown packaging: klib` 让整批失败。必须显式
+  `verifyPom: false`；POM 结构由 `stage.py` 和 Central 自己校验。
 - 上传前 JReleaser 会对每个 POM 调 Central 的 `isPublished`，发现已存在直接整个失败，不会替你跳过。
   因此预剪枝必须做对，repo1 的 POM 是唯一依据；repo1 有 CDN 延迟，刚上传完不要立刻重跑。
 - `authorization: BASIC` 表示 `Bearer base64(username:password)`，正好是 Central user token 的用法；

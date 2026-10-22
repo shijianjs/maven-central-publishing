@@ -32,3 +32,9 @@ deploy:
         # Artifacts are signed by the producing project. Signing them again would not change what
         # Central validates.
         sign: false
+        # Kotlin Multiplatform JS publications declare `<packaging>klib</packaging>` and ship a
+        # `.klib`, which Central accepts (kotlinx libraries publish exactly this) but JReleaser's
+        # PomChecker (kordamp) rejects with "Unknown packaging: klib". The checks that matter are
+        # already done by scripts/stage.py (POM present, every file signed, coordinates match), and
+        # Central validates the POM again on upload.
+        verifyPom: false
