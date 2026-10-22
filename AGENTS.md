@@ -31,7 +31,8 @@
   才 `git rm`；然后 commit，`--push` 时推回当前分支。这样即使上传期间有人替换了注册，也不会误删
   新版本。
 - `jreleaser.yml`：只负责合并与上传。`stagingRepositories: [staging]`，`checksums: false`，
-  `sign: false`（构件由项目侧签名），`verifyPom: false`。
+  `sign: false`（构件由项目侧签名），`verifyPom: false`，并用 `artifactOverrides` 给每个
+  `*-js` 坐标设 `jar: false`。
 - `.github/workflows/hub.yml`：仅 `workflow_dispatch`。`bundle` job 默认 `jreleaser deploy
   --dry-run` 只产出 bundle；`upload` job 在 `upload=true` 时上传，并在成功后运行 cleanup。
   即使 `pending=0`，`upload=true` 也会运行 upload job，用于删除「已发布但注册还在」的条目。
@@ -108,6 +109,10 @@ JReleaser 版本固定在工作流的 `JRELEASER_VERSION`，升级时同步更�
   它不认 Kotlin Multiplatform JS publication 的 `<packaging>klib</packaging>`（Central 本身接受，
   kotlinx 的 `*-js` 构件就是 klib），会以 `Unknown packaging: klib` 让整批失败。必须显式
   `verifyPom: false`；POM 结构由 `stage.py` 和 Central 自己校验。
+- 同一段前置检查还会对任何非 pom/aar/war/zip 的 packaging 要求同名 `.jar`，klib 坐标没有这个
+  文件，报 `...-<version>.jar is missing`。`jar` 只能按 `groupId` + `artifactId` 精确匹配覆盖，
+  所以 `jreleaser.yml` 的 `artifactOverrides` 必须列出每个生产者的每个 `*-js` 坐标；新增 KMP JS
+  模块时要同步加一条，否则整批失败。
 - 上传前 JReleaser 会对每个 POM 调 Central 的 `isPublished`，发现已存在直接整个失败，不会替你跳过。
   因此预剪枝必须做对，repo1 的 POM 是唯一依据；repo1 有 CDN 延迟，刚上传完不要立刻重跑。
 - `authorization: BASIC` 表示 `Bearer base64(username:password)`，正好是 Central user token 的用法；

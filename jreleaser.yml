@@ -38,3 +38,19 @@ deploy:
         # already done by scripts/stage.py (POM present, every file signed, coordinates match), and
         # Central validates the POM again on upload.
         verifyPom: false
+        # JReleaser treats every packaging other than pom/aar/war/zip as requiring a `.jar`, which a
+        # klib coordinate does not have. `jar: false` is the only switch for it and it matches by
+        # exact artifactId, so every `*-js` coordinate of every producer must be listed here.
+        artifactOverrides:
+          - groupId: io.github.shijianjs
+            artifactId: ktjs-iconify-types-js
+            jar: false
+          - groupId: io.github.shijianjs
+            artifactId: ktjs-iconify-utils-js
+            jar: false
+          - groupId: io.github.shijianjs
+            artifactId: ktjs-iconify-tools-js
+            jar: false
+          - groupId: io.github.shijianjs
+            artifactId: ktjs-iconify-icon-js
+            jar: false
