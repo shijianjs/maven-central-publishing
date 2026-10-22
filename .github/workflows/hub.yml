@@ -1,0 +1,159 @@
+name: Maven Central release hub
+
+on:
+  # Publishing is always a manual decision. The default run only collects, verifies and builds the
+  # bundle; ticking `upload` publishes it and then deletes the registrations it satisfied.
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: "Upload the verified bundle to Maven Central and delete the published registrations (irreversible)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  # A cleanup commit and a bundle must never race, and two deployments must not overlap.
+  group: maven-central-release-hub
+  cancel-in-progress: false
+
+env:
+  JRELEASER_VERSION: "1.26.0"
+
+jobs:
+  bundle:
+    name: Collect, verify and bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      pending: ${{ steps.stage.outputs.pending }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Collect registered archives
+        env:
+          # A PAT is only needed for archives hosted in repositories the default token cannot read.
+          GH_TOKEN: ${{ secrets.HUB_RELEASE_TOKEN || github.token }}
+        run: python3 scripts/collect.py
+
+      - name: Verify, prune published coordinates and merge
+        id: stage
+        run: |
+          python3 scripts/stage.py
+          pending="$(jq -r '.pending | length' out/staging-report.json)"
+          echo "pending=${pending}" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Maven Central hub"
+            echo
+            echo "Pending coordinates: ${pending}"
+            echo
+            jq -r '.registrations[] | "- `\(.project)` `\(.module):\(.version)` — \(.status)"' out/staging-report.json
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/setup-java@v4
+        if: steps.stage.outputs.pending != '0'
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install JReleaser
+        if: steps.stage.outputs.pending != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "v${JRELEASER_VERSION}" --repo jreleaser/jreleaser \
+            --pattern "jreleaser-${JRELEASER_VERSION}.zip" \
+            --pattern checksums_sha256.txt \
+            --dir "$RUNNER_TEMP"
+          (cd "$RUNNER_TEMP" && grep -E " +jreleaser-${JRELEASER_VERSION}\.zip$" checksums_sha256.txt | sha256sum -c -)
+          unzip -q "$RUNNER_TEMP/jreleaser-${JRELEASER_VERSION}.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/jreleaser-${JRELEASER_VERSION}/bin" >> "$GITHUB_PATH"
+
+      - name: Build deployment bundle (dry run, no upload)
+        if: steps.stage.outputs.pending != '0'
+        env:
+          # Only affects the bundle file name; must be semver.
+          JRELEASER_PROJECT_VERSION: "0.0.${{ github.run_number }}"
+          # The dry run must satisfy configuration validation but never contacts Central.
+          JRELEASER_DEPLOY_MAVEN_MAVENCENTRAL_HUB_USERNAME: dry-run
+          JRELEASER_DEPLOY_MAVEN_MAVENCENTRAL_HUB_PASSWORD: dry-run
+        run: jreleaser deploy --dry-run
+
+      - name: Archive staging and bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: hub-staging
+          path: |
+            staging
+            out/staging-report.json
+            out/pending-coordinates.txt
+            out/registrations-to-delete.json
+            out/jreleaser/deploy/mavenCentral/hub/*-bundle.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  upload:
+    name: Upload to Maven Central
+    needs: bundle
+    # Publishing only happens on a manual run with the upload box ticked. The job also runs when
+    # nothing is pending, because registrations that were already published still need deleting.
+    if: github.event_name == 'workflow_dispatch' && inputs.upload
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: maven-central
+    permissions:
+      # The cleanup step deletes satisfied registrations and pushes the commit back.
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: hub-staging
+
+      - uses: actions/setup-java@v4
+        if: needs.bundle.outputs.pending != '0'
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install JReleaser
+        if: needs.bundle.outputs.pending != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "v${JRELEASER_VERSION}" --repo jreleaser/jreleaser \
+            --pattern "jreleaser-${JRELEASER_VERSION}.zip" \
+            --pattern checksums_sha256.txt \
+            --dir "$RUNNER_TEMP"
+          (cd "$RUNNER_TEMP" && grep -E " +jreleaser-${JRELEASER_VERSION}\.zip$" checksums_sha256.txt | sha256sum -c -)
+          unzip -q "$RUNNER_TEMP/jreleaser-${JRELEASER_VERSION}.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/jreleaser-${JRELEASER_VERSION}/bin" >> "$GITHUB_PATH"
+
+      - name: Deploy bundle
+        if: needs.bundle.outputs.pending != '0'
+        env:
+          JRELEASER_PROJECT_VERSION: "0.0.${{ github.run_number }}"
+          JRELEASER_DEPLOY_MAVEN_MAVENCENTRAL_HUB_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          JRELEASER_DEPLOY_MAVEN_MAVENCENTRAL_HUB_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+        run: |
+          set -euo pipefail
+          jreleaser deploy | tee "$RUNNER_TEMP/jreleaser.log"
+          {
+            echo "### Maven Central deployment"
+            echo
+            echo '```'
+            grep -E "deploymentId|PUBLISHED|VALIDATED|upload" "$RUNNER_TEMP/jreleaser.log" || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove published registrations
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python3 scripts/cleanup.py \
+            --list out/registrations-to-delete.json \
+            --branch "$GITHUB_REF_NAME" \
+            --push

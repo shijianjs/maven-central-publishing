@@ -1,0 +1,34 @@
+# JReleaser is only the uploader and bundler. Projects register one archive per module and version
+# under registry/; scripts/stage.py extracts the pending ones into `staging`, and JReleaser merges
+# that directory into one zip, ignores hidden files and maven-metadata.xml, checks every POM against
+# repo1 before uploading, and creates at most one Central deployment per run.
+project:
+  name: maven-central-publishing
+  # No version here: it is read from JRELEASER_PROJECT_VERSION, which the workflow sets per run.
+  # It only affects the bundle file name.
+  languages:
+    java:
+      groupId: io.github.shijianjs
+
+deploy:
+  maven:
+    mavenCentral:
+      hub:
+        # The deferral to the upload job is handled by the workflow, not by disabling this block:
+        # the bundle-building dry run needs the deployer to be enabled.
+        active: ALWAYS
+        url: https://central.sonatype.com/api/v1/publisher
+        # BASIC means "Bearer base64(username:password)", which is what a Central user token is.
+        authorization: BASIC
+        # Username and password are read from
+        # JRELEASER_DEPLOY_MAVEN_MAVENCENTRAL_HUB_USERNAME / ..._PASSWORD.
+        # They are only set in the upload job; dry runs pass dummy values.
+        stagingRepositories:
+          - staging
+        # JReleaser would otherwise generate .md5/.sha1/.sha256/.sha512 for every artifact. Central
+        # does not require them and the hub already drops the checksums shipped by producers; keeping
+        # them would multiply File Count for no benefit.
+        checksums: false
+        # Artifacts are signed by the producing project. Signing them again would not change what
+        # Central validates.
+        sign: false
