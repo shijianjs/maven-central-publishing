@@ -1,5 +1,14 @@
 # AGENTS.md
 
+## 本地开发环境
+
+- 仓库按 `S:\workspace\github\<owner>\<repo>` 存放；目录约定、自有项目清单与可参考的第三方克隆见上级
+  `S:\workspace\github\shijianjs\AGENTS.md`（本仓库的 `../AGENTS.md`），查资料前先读它。
+- 上游资料一律读本地克隆，**不要访问 `raw.githubusercontent.com`，也不要用网页抓取 GitHub**：本机所在的
+  国内网络访问这些域名经常超时。
+- 本地还没有需要的仓库时，按上级约定 `gh repo clone <owner>/<repo> S:/workspace/github/<owner>/<repo>`
+  克隆后再读，不要逐个抓网页。
+
 ## 仓库职责
 
 本仓库是 Maven Central 的**汇总发布**入口，只做「注册 → 下载 → 校验 → 剪枝 → 合并 → 上传 →
