@@ -15,6 +15,11 @@ Checks performed before anything is written to `staging/`:
 * `repo1` has no POM for the coordinate (otherwise Central rejects the whole deployment with a
   duplicate-version error).
 
+After the merge, `staging/` is checked against JReleaser's `.jar` prerequisite as well: a packaging
+outside pom/jar/aar/war/zip must ship the same-named jar or be exempted in `jreleaser.yml` under
+`artifactOverrides`. Running it here names the offending coordinate instead of letting JReleaser
+abort the bundle build.
+
 Files that Central does not need are dropped instead of uploaded: `maven-metadata*.xml`,
 `_remote.repositories`, hidden entries and all checksum files (`.md5`, `.sha1`, `.sha256`,
 `.sha512`, including checksums of `.asc` files). They only consume File Count quota.
@@ -38,6 +43,7 @@ import tarfile
 import time
 import urllib.error
 import urllib.request
+import xml.etree.ElementTree
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -48,6 +54,8 @@ from typing import Iterator
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 COORDINATE_RE = re.compile(r"^[A-Za-z0-9_.-]+:[A-Za-z0-9_.-]+:[A-Za-z0-9_.+-]+$")
 RETRYABLE_STATUS = {429, 500, 502, 503, 504}
+# JReleaser's Maven Central prerequisite only skips the "same-named .jar" rule for these packagings.
+JARLESS_PACKAGING = {"pom", "jar", "aar", "war", "zip"}
 USER_AGENT = "maven-central-publishing-hub/1"
 
 
@@ -425,6 +433,77 @@ def validate_staging(staging: Path, pending: set[str]) -> tuple[int, int]:
     return total_files, total_bytes
 
 
+def read_packaging(pom: Path) -> str:
+    try:
+        root = xml.etree.ElementTree.parse(pom).getroot()
+    except (xml.etree.ElementTree.ParseError, OSError) as error:
+        raise StageError(f"{pom.name}: cannot read packaging: {error}") from error
+    namespace = root.tag[: root.tag.index("}") + 1] if root.tag.startswith("{") else ""
+    node = root.find(f"{namespace}packaging")
+    value = (node.text or "").strip() if node is not None else ""
+    return value or "jar"
+
+
+def jar_exemptions(config: Path) -> set[tuple[str, str]]:
+    """Return the (groupId, artifactId) pairs that artifactOverrides exempts from the jar rule.
+
+    jreleaser.yml is read as text: it is one hand-maintained block and adding a YAML parser to the
+    hub is not worth it. Every entry in that block counts, because the block exists only to pass
+    `jar: false`.
+    """
+    try:
+        text = config.read_text(encoding="utf-8")
+    except OSError:
+        return set()
+    match = re.search(r"^(?P<indent>[ \t]*)artifactOverrides:[ \t]*$", text, re.MULTILINE)
+    if match is None:
+        return set()
+    indent = len(match.group("indent"))
+    block: list[str] = []
+    for line in text[match.end() :].splitlines():
+        if line.strip() and len(line) - len(line.lstrip()) <= indent:
+            break
+        block.append(line)
+    exempt: set[tuple[str, str]] = set()
+    for item in re.split(r"^[ \t]*-[ \t]+", "\n".join(block), flags=re.MULTILINE)[1:]:
+        group = re.search(r"^[ \t]*groupId:[ \t]*[\"']?([^\"'\s]+)", item, re.MULTILINE)
+        artifact = re.search(r"^[ \t]*artifactId:[ \t]*[\"']?([^\"'\s]+)", item, re.MULTILINE)
+        if group and artifact:
+            exempt.add((group.group(1), artifact.group(1)))
+    return exempt
+
+
+def check_jar_prerequisite(staging: Path, pending: set[str], config: Path) -> None:
+    """Fail before JReleaser does when a coordinate has no jar and no artifactOverrides entry.
+
+    JReleaser aborts the whole deployment for every packaging outside JARLESS_PACKAGING when the
+    same-named `.jar` is missing, and the only opt-out is an artifactOverrides entry keyed by the
+    exact groupId/artifactId. Kotlin Multiplatform JS publications ship a `.klib`, so a new KMP
+    producer that forgets its entry used to surface only in the JReleaser dry run.
+    """
+    exempt = jar_exemptions(config)
+    missing: list[str] = []
+    for coordinate in sorted(pending):
+        group, artifact, version = coordinate.split(":")
+        directory = staging.joinpath(*group.split("."), artifact, version)
+        packaging = read_packaging(directory / f"{artifact}-{version}.pom")
+        if packaging in JARLESS_PACKAGING:
+            continue
+        if (directory / f"{artifact}-{version}.jar").is_file():
+            continue
+        if (group, artifact) in exempt:
+            continue
+        missing.append(f"{coordinate} (packaging {packaging})")
+    if missing:
+        raise StageError(
+            "JReleaser requires a .jar for these coordinates and jreleaser.yml has no matching "
+            "artifactOverrides entry:\n  "
+            + "\n  ".join(missing)
+            + "\nShip the jar, or add an entry with `jar: false` under "
+            "deploy.maven.mavenCentral.hub.artifactOverrides."
+        )
+
+
 def write_reports(
     report_path: Path,
     report: dict,
@@ -465,6 +544,12 @@ def main() -> int:
     parser.add_argument("--downloaded", type=Path, default=Path("downloaded"))
     parser.add_argument("--staging", type=Path, default=Path("staging"))
     parser.add_argument("--report", type=Path, default=Path("out/staging-report.json"))
+    parser.add_argument(
+        "--jreleaser-config",
+        type=Path,
+        default=Path("jreleaser.yml"),
+        help="read artifactOverrides from this file to check JReleaser's .jar prerequisite",
+    )
     parser.add_argument("--repo1", default="https://repo1.maven.org/maven2")
     parser.add_argument(
         "--offline",
@@ -502,6 +587,7 @@ def main() -> int:
 
         merge(inspected, pending, args.staging)
         files, size = validate_staging(args.staging, pending)
+        check_jar_prerequisite(args.staging, pending, args.jreleaser_config)
 
         report = {
             "generatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),

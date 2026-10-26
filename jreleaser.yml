@@ -54,3 +54,6 @@ deploy:
           - groupId: io.github.shijianjs
             artifactId: ktjs-iconify-icon-js
             jar: false
+          - groupId: io.github.shijianjs
+            artifactId: ktjs-vaadin-web-components-js
+            jar: false

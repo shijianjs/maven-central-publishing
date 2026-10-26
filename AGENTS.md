@@ -118,10 +118,12 @@ JReleaser 版本固定在工作流的 `JRELEASER_VERSION`，升级时同步更�
   它不认 Kotlin Multiplatform JS publication 的 `<packaging>klib</packaging>`（Central 本身接受，
   kotlinx 的 `*-js` 构件就是 klib），会以 `Unknown packaging: klib` 让整批失败。必须显式
   `verifyPom: false`；POM 结构由 `stage.py` 和 Central 自己校验。
-- 同一段前置检查还会对任何非 pom/aar/war/zip 的 packaging 要求同名 `.jar`，klib 坐标没有这个
+- 同一段前置检查还会对任何非 pom/jar/aar/war/zip 的 packaging 要求同名 `.jar`，klib 坐标没有这个
   文件，报 `...-<version>.jar is missing`。`jar` 只能按 `groupId` + `artifactId` 精确匹配覆盖，
   所以 `jreleaser.yml` 的 `artifactOverrides` 必须列出每个生产者的每个 `*-js` 坐标；新增 KMP JS
-  模块时要同步加一条，否则整批失败。
+  模块时要同步加一条，否则整批失败。`stage.py` 会先按同一规则检查（读 POM 的 `<packaging>` 与
+  `artifactOverrides`），缺少条目时在 collect 阶段就报出坐标和要补的配置，不必等 JReleaser
+  dry run 才发现。
 - 上传前 JReleaser 会对每个 POM 调 Central 的 `isPublished`，发现已存在直接整个失败，不会替你跳过。
   因此预剪枝必须做对，repo1 的 POM 是唯一依据；repo1 有 CDN 延迟，刚上传完不要立刻重跑。
 - `authorization: BASIC` 表示 `Bearer base64(username:password)`，正好是 Central user token 的用法；
