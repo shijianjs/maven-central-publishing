@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "project": "shijianjs/ktjs-iconify",
+  "module": "ktjs-iconify-types-js",
+  "version": "2.0.0-kt.5",
+  "release": "release-kt.5",
+  "coordinate": "io.github.shijianjs:ktjs-iconify-types-js:2.0.0-kt.5",
+  "archive": {
+    "url": "https://github.com/shijianjs/ktjs-iconify/releases/download/release-kt.5/ktjs-iconify-types-js-2.0.0-kt.5.tar.xz",
+    "sha256": "e6127e728bbb16010ad95914f967176b9e6149f01d29f87b51d2dcdc0915bdc5"
+  }
+}
