@@ -57,3 +57,9 @@ deploy:
           - groupId: io.github.shijianjs
             artifactId: ktjs-vaadin-web-components-js
             jar: false
+          - groupId: io.github.shijianjs
+            artifactId: ktjs-echarts-js
+            jar: false
+          - groupId: io.github.shijianjs
+            artifactId: ktjs-echarts-gl-js
+            jar: false
