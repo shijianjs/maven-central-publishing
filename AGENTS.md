@@ -75,7 +75,8 @@ JReleaser 版本固定在工作流的 `JRELEASER_VERSION`，升级时同步更�
 - `coordinate` 可选；写了就必须与归档内容一致。JReleaser 仍会检查 namespace，坐标必须属于
   `jreleaser.yml` 的 `project.languages.java.groupId`。
 - 归档推荐 `.tar.xz`（solid 压缩对重复内容更友好），也接受 `.zip` / `.tar.gz`。归档必须已签名，
-  且只放 Central 需要的文件；校验和、`maven-metadata.xml` 和隐藏文件会被丢弃。
+  且只放 Central 需要的文件；生产者自带的校验和、`maven-metadata.xml` 和隐藏文件会被丢弃，
+  Central 必需的 `.md5`/`.sha1` 由 `stage.py` 在合并后统一生成。
 - `archive.sha256` 是必填的 64 位小写十六进制；每次运行都会重算，因此上传归档后要同步更新注册。
 - 修改字段名或 `schemaVersion` 属于跨仓库破坏性变更：所有生产者都要同步升级，优先加可选字段。
 
@@ -113,7 +114,10 @@ JReleaser 版本固定在工作流的 `JRELEASER_VERSION`，升级时同步更�
 - `project.java.groupId` 已弃用，改用 `project.languages.java.groupId`。groupId 同时用作 Central
   namespace，并与 deployer 的 namespace 回退逻辑相关。
 - 默认 `checksums` 为 true，会为每个构件生成 `.md5/.sha1/.sha256/.sha512` 并放进 bundle（即使
-  staging 里没有）。必须显式 `checksums: false`，否则 File Count 会翻四倍。
+  staging 里没有）。必须显式 `checksums: false`：Central 只校验 `.md5` 与 `.sha1`，而这两个由
+  `scripts/stage.py` 在合并后自己写（`.asc` 不写，与 repo1 一致），交给 JReleaser 只会让 File
+  Count 翻四倍。缺 md5/sha1 的 bundle 会被 Central 判为 `failed`，报
+  `Missing md5 checksum for file: ...`。
 - `verifyPom` 会随 `applyMavenCentralRules` 的默认值打开，对每个 POM 跑 kordamp PomChecker。
   它不认 Kotlin Multiplatform JS publication 的 `<packaging>klib</packaging>`（Central 本身接受，
   kotlinx 的 `*-js` 构件就是 klib），会以 `Unknown packaging: klib` 让整批失败。必须显式

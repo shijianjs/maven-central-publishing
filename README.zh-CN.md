@@ -86,7 +86,8 @@ io/github/shijianjs/ktjs-iconify-types/3.1.7-kt.4/ktjs-iconify-types-3.1.7-kt.4.
 `tar -C dir -cJf out.tar.xz .` 可以用，开头的 `./` 会被忽略。
 
 构件必须由生产者预先签名：每个文件都要有非空的分离式 `.asc` 兄弟文件，POM 本身也是必需的。
-本仓库不签名（`sign: false`），也不生成校验和（`checksums: false`）。
+本仓库不签名（`sign: false`）；Central 要校验的 `.md5` 与 `.sha1` 由本仓库在合并后自己写出，
+生产者不必携带。
 
 Gradle 产出归档的流程与之前相同：先发布到 `build/staging-repo` 这类 file repository（vanniktech
 没有「只打包不上传」的开关），再打包目录。Maven 项目可以用 `central-publishing-maven-plugin`
@@ -122,8 +123,10 @@ JReleaser 上传前也会就每个 POM 询问 Central 是否已存在，发现�
 repo1 探测的作用是让运行跳过这类坐标，而不是撞上那堵墙；它是纵深防御，不能相互替代。
 
 同时丢弃 Central 不需要、只消耗 File Count 额度的文件：`maven-metadata*.xml`、
-`_remote.repositories`、隐藏文件以及所有校验和文件（`.md5`、`.sha1`、`.sha256`、`.sha512`，
-包括 `.asc` 的校验和）。
+`_remote.repositories`、隐藏文件，以及生产者自带的校验和文件。合并后每个构件都会补上新生成的
+`.md5` 与 `.sha1`（缺了 Central 直接判 deployment 失败），`.asc` 则不单独配校验和，与 repo1
+上的目录一致。JReleaser 自己的 `checksums` 仍保持 `false`，否则它会给每个文件再加
+`.sha256`、`.sha512` 两份。
 
 注册表为空，或者所有坐标都已发布时，staging 目录是空的：运行报告零个待发布坐标，正常结束，
 不创建 deployment。
@@ -169,7 +172,8 @@ jreleaser deploy --dry-run
 供 Sonatype Support 排查。
 
 Release Count 按 deployment 计：只要上传，一次运行就产生一个 deployment，与包含多少条注册无关。
-File Count 与 Release Size 按构件累计，这就是本仓库在上传前剔除已发布坐标和校验和文件的原因。
+File Count 与 Release Size 按构件累计，这就是本仓库在上传前剔除已发布坐标、并且只补 Central 要求
+的 `.md5`/`.sha1`（而不是四种校验和）的原因。
 
 JReleaser 的版本固定在工作流里，并且会用 release 附带的 `checksums_sha256.txt` 校验安装包。
 

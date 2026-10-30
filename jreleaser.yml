@@ -26,8 +26,9 @@ deploy:
         stagingRepositories:
           - staging
         # JReleaser would otherwise generate .md5/.sha1/.sha256/.sha512 for every artifact. Central
-        # does not require them and the hub already drops the checksums shipped by producers; keeping
-        # them would multiply File Count for no benefit.
+        # validates only .md5 and .sha1, and scripts/stage.py writes exactly that pair into
+        # staging after the merge, so letting JReleaser add its four copies would only double the
+        # File Count cost.
         checksums: false
         # Artifacts are signed by the producing project. Signing them again would not change what
         # Central validates.

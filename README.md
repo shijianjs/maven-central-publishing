@@ -92,8 +92,8 @@ Do not wrap the layout in an extra directory, and do not mix several modules or 
 archive. `tar -C dir -cJf out.tar.xz .` is fine; a leading `./` is ignored.
 
 Every artifact must already be signed by the producer: each file needs a detached, non-empty
-`.asc` sibling, and the POM itself is mandatory. The hub does not sign (`sign: false`) and does not
-generate checksums (`checksums: false`).
+`.asc` sibling, and the POM itself is mandatory. The hub does not sign (`sign: false`). It writes
+the `.md5` and `.sha1` that Central validates itself, so producers do not have to ship them.
 
 Producing an archive from Gradle is the same flow as before: publish to a file repository such as
 `build/staging-repo` (vanniktech has no "bundle only" switch), then package the directory. Maven
@@ -130,8 +130,11 @@ deployment on a duplicate. The repo1 probe is what makes the run skip such coord
 hitting that wall; it is a defence-in-depth check, not a replacement.
 
 It also drops files that Central does not need and that only consume File Count quota:
-`maven-metadata*.xml`, `_remote.repositories`, hidden files and all checksum files (`.md5`,
-`.sha1`, `.sha256`, `.sha512`, including checksums of `.asc` files).
+`maven-metadata*.xml`, `_remote.repositories`, hidden files and the checksum files shipped by
+producers. After the merge every artifact carries a freshly generated `.md5` and `.sha1` — Central
+rejects a deployment without them — and `.asc` files get no checksums of their own, which is what
+repo1 serves. JReleaser's own `checksums` stays `false`, otherwise it would add `.sha256` and
+`.sha512` for every file on top.
 
 When the registry is empty, or every coordinate is already published, the staging directory is
 empty: the run reports zero pending coordinates, ends successfully, and creates no deployment.
@@ -181,7 +184,8 @@ anything, and failed deployments are left in place for Sonatype Support.
 
 Release Count is per deployment: every run that uploads creates one deployment regardless of how
 many registrations it contains. File Count and Release Size are per artifact, which is why the hub
-drops published coordinates and checksum files before uploading.
+drops published coordinates before uploading and ships only the `.md5`/`.sha1` pair Central
+requires instead of four checksum files.
 
 JReleaser is pinned in the workflow and its distribution is verified against the release's
 `checksums_sha256.txt`.
