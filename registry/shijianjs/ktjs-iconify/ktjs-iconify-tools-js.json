@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "project": "shijianjs/ktjs-iconify",
+  "module": "ktjs-iconify-tools-js",
+  "version": "5.0.14-kt.6",
+  "release": "release-kt.6",
+  "coordinate": "io.github.shijianjs:ktjs-iconify-tools-js:5.0.14-kt.6",
+  "archive": {
+    "url": "https://github.com/shijianjs/ktjs-iconify/releases/download/release-kt.6/ktjs-iconify-tools-js-5.0.14-kt.6.tar.xz",
+    "sha256": "5323483e17af1160e02c87fd2d4d5a5f184668c93e557e8745bd5b0745587077"
+  }
+}
