@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "project": "shijianjs/ktjs-echarts",
+  "module": "ktjs-echarts-gl-js",
+  "version": "2.1.0-kt.11",
+  "release": "release-2",
+  "coordinate": "io.github.shijianjs:ktjs-echarts-gl-js:2.1.0-kt.11",
+  "archive": {
+    "url": "https://github.com/shijianjs/ktjs-echarts/releases/download/release-2/ktjs-echarts-gl-js-2.1.0-kt.11.tar.xz",
+    "sha256": "92196bbabd18e4548e56ddaaa28563bbc81e4a7eb9800675dd10361df97819db"
+  }
+}

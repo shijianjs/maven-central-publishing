@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "project": "shijianjs/ktjs-echarts",
+  "module": "ktjs-echarts",
+  "version": "6.1.0-kt.13",
+  "release": "release-2",
+  "coordinate": "io.github.shijianjs:ktjs-echarts:6.1.0-kt.13",
+  "archive": {
+    "url": "https://github.com/shijianjs/ktjs-echarts/releases/download/release-2/ktjs-echarts-6.1.0-kt.13.tar.xz",
+    "sha256": "cc665e7be5c7261afc475ab3c0806f8d17d122830bdabd52704f41472248958b"
+  }
+}
