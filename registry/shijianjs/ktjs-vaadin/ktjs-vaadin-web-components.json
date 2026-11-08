@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "project": "shijianjs/ktjs-vaadin",
+  "module": "ktjs-vaadin-web-components",
+  "version": "25.3.5-kt.4",
+  "release": "release-25.3.5-kt.4",
+  "coordinate": "io.github.shijianjs:ktjs-vaadin-web-components:25.3.5-kt.4",
+  "archive": {
+    "url": "https://github.com/shijianjs/ktjs-vaadin/releases/download/release-25.3.5-kt.4/ktjs-vaadin-web-components-25.3.5-kt.4.tar.xz",
+    "sha256": "ab8cdc6d3cec891505a6eea1a1a3239cbecfd1decc7d040f73dea486e4b9603e"
+  }
+}
