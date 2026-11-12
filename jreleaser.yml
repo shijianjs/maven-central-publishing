@@ -70,3 +70,6 @@ deploy:
           - groupId: io.github.shijianjs
             artifactId: ktjs-docusaurus-kit-js
             jar: false
+          - groupId: io.github.shijianjs
+            artifactId: ktjs-dom-kit-js
+            jar: false
