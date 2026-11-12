@@ -7,6 +7,6 @@
   "coordinate": "io.github.shijianjs:ktjs-docusaurus-gradle-plugin:3.10.2-kt.1",
   "archive": {
     "url": "https://github.com/shijianjs/ktjs-docusaurus/releases/download/release-1/ktjs-docusaurus-gradle-plugin-3.10.2-kt.1.tar.xz",
-    "sha256": "d10764df3a3c76632261506f643ffa2a986b8c061dbe045b529da2d2b0c7faf6"
+    "sha256": "16cbb2dca123cb7b5d1080275a52bd1d50be6bdbadac8f5b07d25e782bd17d8b"
   }
 }
