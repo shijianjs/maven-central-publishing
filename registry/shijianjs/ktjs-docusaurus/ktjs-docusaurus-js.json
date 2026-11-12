@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "project": "shijianjs/ktjs-docusaurus",
+  "module": "ktjs-docusaurus-js",
+  "version": "3.10.2-kt.2",
+  "release": "release-1",
+  "coordinate": "io.github.shijianjs:ktjs-docusaurus-js:3.10.2-kt.2",
+  "archive": {
+    "url": "https://github.com/shijianjs/ktjs-docusaurus/releases/download/release-1/ktjs-docusaurus-js-3.10.2-kt.2.tar.xz",
+    "sha256": "bd287277950a6398f224ddb7f6b3aebddbe8f3e8137dd9cbdd0cf5c1b01dde9d"
+  }
+}
