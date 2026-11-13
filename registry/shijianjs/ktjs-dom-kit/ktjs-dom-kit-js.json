@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "project": "shijianjs/ktjs-dom-kit",
+  "module": "ktjs-dom-kit-js",
+  "version": "0.1.0",
+  "release": "release-1",
+  "coordinate": "io.github.shijianjs:ktjs-dom-kit-js:0.1.0",
+  "archive": {
+    "url": "https://github.com/shijianjs/ktjs-dom-kit/releases/download/release-1/ktjs-dom-kit-js-0.1.0.tar.xz",
+    "sha256": "ac2db9124467fd034969624a9c324e1fe57329abf911ab22f075489ef3b05b70"
+  }
+}
